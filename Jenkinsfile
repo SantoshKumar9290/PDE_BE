@@ -6,18 +6,15 @@ node {
 
     stage('Install Dependencies') {
         sh '''
-            echo "Node version:"
             node -v
             npm -v
-
             npm install --legacy-peer-deps
         '''
     }
 
     stage('SonarQube Analysis') {
-        def scannerHome = tool 'SonarScanner'
         withSonarQubeEnv('pde_be') {
-            sh "${scannerHome}/bin/sonar-scanner"
+            sh 'sonar-scanner'
         }
     }
 
@@ -30,7 +27,6 @@ node {
             pm2 delete pde_be || true
             pm2 start index.js --name pde_be
             pm2 save
-            pm2 list
         '''
     }
 }
