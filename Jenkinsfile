@@ -1,66 +1,36 @@
-pipeline {
-    agent any
+node {
 
-    tools {
-        nodejs 'Node16'
+    stage('Checkout') {
+        checkout scm
     }
 
-    environment {
-        APP_NAME = 'pde_be'
+    stage('Install Dependencies') {
+        sh '''
+            echo "Node version:"
+            node -v
+            npm -v
+
+            npm install --legacy-peer-deps
+        '''
     }
 
-    stages {
-
-        stage('Checkout Code') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                sh '''
-                    echo "Node Version:"
-                    node -v
-                    npm -v
-
-                    npm install --legacy-peer-deps
-                '''
-            }
-        }
-
-        stage('SonarQube Scan') {
-            steps {
-                withSonarQubeEnv('pde_be') {
-                    sh '''
-                        sonar-scanner
-                    '''
-                }
-            }
-        }
-
-        stage('Start / Restart App (PM2)') {
-            steps {
-                sh '''
-                    if ! command -v pm2 >/dev/null 2>&1; then
-                        npm install -g pm2
-                    fi
-
-                    pm2 delete ${APP_NAME} || true
-                    pm2 start index.js --name ${APP_NAME}
-                    pm2 save
-                    pm2 list
-                '''
-            }
+    stage('SonarQube Analysis') {
+        def scannerHome = tool 'SonarScanner'
+        withSonarQubeEnv('pde_be') {
+            sh "${scannerHome}/bin/sonar-scanner"
         }
     }
 
-    post {
-        success {
-            echo "PDE Backend pipeline completed successfully"
-        }
-        failure {
-            echo "Pipeline failed. Check logs."
-        }
+    stage('Start Backend (PM2)') {
+        sh '''
+            if ! command -v pm2 >/dev/null 2>&1; then
+                npm install -g pm2
+            fi
+
+            pm2 delete pde_be || true
+            pm2 start index.js --name pde_be
+            pm2 save
+            pm2 list
+        '''
     }
 }
