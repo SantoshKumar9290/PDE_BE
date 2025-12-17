@@ -1,32 +1,5 @@
-node {
-
-    stage('Checkout') {
-        checkout scm
-    }
-
-    stage('Install Dependencies') {
-        sh '''
-            node -v
-            npm -v
-            npm install --legacy-peer-deps
-        '''
-    }
-
-    stage('SonarQube Analysis') {
-        withSonarQubeEnv('pde_be') {
-            sh 'sonar-scanner'
-        }
-    }
-
-    stage('Start Backend (PM2)') {
-        sh '''
-            if ! command -v pm2 >/dev/null 2>&1; then
-                npm install -g pm2
-            fi
-
-            pm2 delete pde_be || true
-            pm2 start index.js --name pde_be
-            pm2 save
-        '''
-    }
-}
+sonar.projectKey=pde_be
+sonar.projectName=pde_be
+sonar.sources=src
+sonar.exclusions=node_modules/**,coverage/**,dist/**,build/**
+sonar.sourceEncoding=UTF-8
